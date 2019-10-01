@@ -1,4 +1,3 @@
-DROP TABLE T_CARD;
 CREATE TABLE T_CARD (
     cardId smallint NOT NULL GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1) primary key,
     colorId smallint NOT NULL,

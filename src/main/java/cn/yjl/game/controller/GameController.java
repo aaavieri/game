@@ -24,10 +24,15 @@ public class GameController {
         return new ResponseJsonDto();
     }
 
-    @PostMapping("/joinGame")
-    public SseEmitter joinGame(@RequestBody BaseRequestDto requestDto) {
-        SseEmitter sseEmitter = this.gameListener.joinGame(requestDto.getUserId());
+    @PostMapping("/gameEvent")
+    public SseEmitter gameEvent(@RequestBody BaseRequestDto requestDto) {
+        SseEmitter sseEmitter = this.gameListener.registerEvent(requestDto.getUserId());
         this.gameService.joinGame(requestDto);
         return sseEmitter;
+    }
+
+    @PostMapping("/joinGame")
+    public ResponseJsonDto joinGame(@RequestBody BaseRequestDto requestDto) {
+        return new ResponseJsonDto().setData(this.gameService.joinGame(requestDto).getGameId());
     }
 }

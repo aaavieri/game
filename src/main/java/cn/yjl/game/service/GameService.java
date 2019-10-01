@@ -45,7 +45,7 @@ public class GameService implements ApplicationListener<DataInitCompleteEvent> {
         this.cardList = this.cardMapper.getAllCards();
     }
 
-    public void joinGame(BaseRequestDto requestDto) throws ApplicationException {
+    public GameStateDto joinGame(BaseRequestDto requestDto) throws ApplicationException {
         if (this.gameStateMap.values().stream().anyMatch(
                 state -> state.getUsers().containsKey(requestDto.getUserId())
                         && state.getStatusEnum().getValue() < COMPLETE.getValue())) {
@@ -59,6 +59,7 @@ public class GameService implements ApplicationListener<DataInitCompleteEvent> {
             game = new GameStateDto().setGameId(this.gameCounter.incrementAndGet()).addUser(requestDto.getUserId());
             this.gameStateMap.put(game.getGameId(), game);
         }
+        return game;
     }
 
     public SseEmitter startGame(BaseRequestDto requestDto) {

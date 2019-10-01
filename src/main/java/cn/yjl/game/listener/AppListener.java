@@ -4,22 +4,14 @@ import cn.yjl.game.event.DataInitCompleteEvent;
 import cn.yjl.game.mapper.SqlMapper;
 import cn.yjl.game.util.IoUtil;
 import lombok.extern.slf4j.Slf4j;
-import org.mybatis.spring.SqlSessionTemplate;
-import org.mybatis.spring.support.SqlSessionDaoSupport;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.event.ApplicationContextInitializedEvent;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.List;
 import java.util.stream.Stream;
 
 @Component
@@ -28,9 +20,6 @@ public class AppListener implements ApplicationListener<ContextRefreshedEvent> {
 
     @Autowired
     private SqlMapper sqlMapper;
-
-//    @Autowired
-//    private SqlSessionTemplate sqlSessionTemplate;
 
     @Autowired
     private ApplicationContext applicationContext;
