@@ -2,7 +2,6 @@ package cn.yjl.game.service;
 
 import cn.yjl.game.dto.GameStateDto;
 import cn.yjl.game.dto.request.BaseRequestDto;
-import cn.yjl.game.dto.response.JoinGameResponseDto;
 import cn.yjl.game.event.DataInitCompleteEvent;
 import cn.yjl.game.event.JoinGameCompleteEvent;
 import cn.yjl.game.exception.ApplicationException;

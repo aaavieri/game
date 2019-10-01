@@ -11,7 +11,7 @@ import java.util.Map;
 @Accessors(chain = true)
 public class ResponseJsonDto {
 
-    private boolean success;
+    private boolean success = true;
 
     private String errMsg;
 

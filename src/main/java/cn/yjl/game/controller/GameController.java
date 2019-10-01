@@ -26,9 +26,7 @@ public class GameController {
 
     @PostMapping("/gameEvent")
     public SseEmitter gameEvent(@RequestBody BaseRequestDto requestDto) {
-        SseEmitter sseEmitter = this.gameListener.registerEvent(requestDto.getUserId());
-        this.gameService.joinGame(requestDto);
-        return sseEmitter;
+        return this.gameListener.registerEvent(requestDto.getUserId());
     }
 
     @PostMapping("/joinGame")

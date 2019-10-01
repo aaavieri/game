@@ -1,4 +1,4 @@
-package cn.yjl.game.dto.response;
+package cn.yjl.game.dto.event;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -9,6 +9,6 @@ import java.util.List;
 @EqualsAndHashCode(callSuper = true)
 @Data
 @Accessors(chain = true)
-public class JoinGameResponseDto extends BaseResponseDto {
+public class JoinGameEventDto extends BaseEventDto {
     private List<String> userList;
 }
