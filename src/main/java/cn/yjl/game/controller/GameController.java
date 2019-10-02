@@ -6,7 +6,10 @@ import cn.yjl.game.dto.request.LoginRequestDto;
 import cn.yjl.game.listener.GameListener;
 import cn.yjl.game.service.GameService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @RestController
@@ -32,5 +35,20 @@ public class GameController {
     @PostMapping("/joinGame")
     public ResponseJsonDto joinGame(@RequestBody BaseRequestDto requestDto) {
         return new ResponseJsonDto().setData(this.gameService.joinGame(requestDto).getGameId());
+    }
+    
+    @PostMapping("/startGame")
+    public ResponseJsonDto startGame(@RequestBody BaseRequestDto requestDto) {
+        return new ResponseJsonDto().setData(this.gameService.startGame(requestDto).getGameId());
+    }
+    
+    @PostMapping("/skipLord")
+    public ResponseJsonDto skipLord(@RequestBody BaseRequestDto requestDto) {
+        return new ResponseJsonDto().setData(this.gameService.skipLord(requestDto).getGameId());
+    }
+    
+    @PostMapping("/callLord")
+    public ResponseJsonDto callLord(@RequestBody BaseRequestDto requestDto) {
+        return new ResponseJsonDto().setData(this.gameService.startGame(requestDto).getGameId());
     }
 }

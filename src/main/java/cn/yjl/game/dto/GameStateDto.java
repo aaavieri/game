@@ -5,25 +5,35 @@ import lombok.Data;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-import static cn.yjl.game.enumeration.GameStatusEnum.*;
-import static cn.yjl.game.enumeration.UserGameStatusEnum.*;
+import static cn.yjl.game.enumeration.GameStatusEnum.NOT_ENOUGH_USER;
+import static cn.yjl.game.enumeration.UserGameStatusEnum.WAITING_OTHER_JOIN;
 
 @Data
 @Accessors(chain = true)
 public class GameStateDto {
 
     private int gameId;
+    
+    private String lordUser;
+    
+    private List<CardWrapDto> lordCardList;
 
     @Getter
-    private Map<String, UserGameStateDto> users = new HashMap<>();
+    private Map<String, UserGameStateDto> userInfo = new HashMap<>();
+    
+    @Getter
+    private List<String> userList = new ArrayList<>();
 
     private GameStatusEnum statusEnum = NOT_ENOUGH_USER;
 
     public GameStateDto addUser(String userId) {
-        this.users.put(userId, new UserGameStateDto().setUserId(userId).setStatus(WAITING_OTHER_JOIN));
+        this.userInfo.put(userId, new UserGameStateDto().setUserId(userId).setStatus(WAITING_OTHER_JOIN));
+        this.userList.add(userId);
         return this;
     }
 }
