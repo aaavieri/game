@@ -1,22 +1,18 @@
 package cn.yjl.game.event;
 
+import cn.yjl.game.service.GameService;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
-import org.springframework.context.ApplicationEvent;
 
 @EqualsAndHashCode(callSuper = true)
 @Data
 @Accessors(chain = true)
-public class LordGameCompleteEvent extends ApplicationEvent {
-
-    private int gameId;
+public class CallLordGameEvent extends BaseGameEvent {
 
     private String lordUserId;
 
-    private boolean callLord;
-
-    public LordGameCompleteEvent(Object source) {
+    public CallLordGameEvent(GameService source) {
         super(source);
     }
 }

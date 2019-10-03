@@ -36,19 +36,24 @@ public class GameController {
     public ResponseJsonDto joinGame(@RequestBody BaseRequestDto requestDto) {
         return new ResponseJsonDto().setData(this.gameService.joinGame(requestDto).getGameId());
     }
-    
+
     @PostMapping("/startGame")
     public ResponseJsonDto startGame(@RequestBody BaseRequestDto requestDto) {
         return new ResponseJsonDto().setData(this.gameService.startGame(requestDto).getGameId());
     }
-    
+
     @PostMapping("/skipLord")
     public ResponseJsonDto skipLord(@RequestBody BaseRequestDto requestDto) {
         return new ResponseJsonDto().setData(this.gameService.skipLord(requestDto).getGameId());
     }
-    
+
     @PostMapping("/callLord")
     public ResponseJsonDto callLord(@RequestBody BaseRequestDto requestDto) {
-        return new ResponseJsonDto().setData(this.gameService.startGame(requestDto).getGameId());
+        return new ResponseJsonDto().setData(this.gameService.callLord(requestDto).getGameId());
+    }
+
+    @PostMapping("/skipPlay")
+    public ResponseJsonDto skipPlay(@RequestBody BaseRequestDto requestDto) {
+        return new ResponseJsonDto().setData(this.gameService.callLord(requestDto).getGameId());
     }
 }

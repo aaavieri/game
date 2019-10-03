@@ -18,14 +18,17 @@ import static cn.yjl.game.enumeration.UserGameStatusEnum.WAITING_OTHER_JOIN;
 public class GameStateDto {
 
     private int gameId;
-    
+
     private String lordUser;
-    
+
     private List<CardWrapDto> lordCardList;
 
     @Getter
+    private List<OnceSendCardDto> sentHistory = new ArrayList<>();
+
+    @Getter
     private Map<String, UserGameStateDto> userInfo = new HashMap<>();
-    
+
     @Getter
     private List<String> userList = new ArrayList<>();
 

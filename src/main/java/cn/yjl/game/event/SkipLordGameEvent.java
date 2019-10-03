@@ -8,9 +8,11 @@ import lombok.experimental.Accessors;
 @EqualsAndHashCode(callSuper = true)
 @Data
 @Accessors(chain = true)
-public class StartGameCompleteEvent extends BaseGameEvent {
+public class SkipLordGameEvent extends BaseGameEvent {
 
-    public StartGameCompleteEvent(GameService source) {
+    private String nextLordUser;
+
+    public SkipLordGameEvent(GameService source) {
         super(source);
     }
 }

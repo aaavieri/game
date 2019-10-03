@@ -9,11 +9,11 @@ import java.util.List;
 public interface SqlMapper {
 
     @Update("${sql}")
-    void executeSql(@Param("sql")final String sql);
+    void executeSql(@Param("sql") final String sql);
 
     @Select("${sql}")
-    <T> T searchOneSql(@Param("sql")final String sql);
+    <T> T searchOneSql(@Param("sql") final String sql);
 
     @Select("${sql}")
-    <T> List<T> searchListSql(@Param("sql")final String sql);
+    <T> List<T> searchListSql(@Param("sql") final String sql);
 }

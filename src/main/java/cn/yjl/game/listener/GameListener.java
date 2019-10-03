@@ -3,10 +3,10 @@ package cn.yjl.game.listener;
 import cn.yjl.game.dto.GameStateDto;
 import cn.yjl.game.dto.event.DistributeCardEventDto;
 import cn.yjl.game.dto.event.JoinGameEventDto;
+import cn.yjl.game.dto.event.SkipLordEventDto;
 import cn.yjl.game.event.JoinGameCompleteEvent;
+import cn.yjl.game.event.SkipLordGameEvent;
 import cn.yjl.game.event.StartGameCompleteEvent;
-import cn.yjl.game.service.GameService;
-import cn.yjl.game.util.AppUtil;
 import cn.yjl.game.util.ExUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,11 +17,6 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.HashMap;
 import java.util.Map;
-
-import static cn.yjl.game.enumeration.GameStatusEnum.WAITING_LORD;
-import static cn.yjl.game.enumeration.GameStatusEnum.WAITING_START;
-import static cn.yjl.game.enumeration.UserGameStatusEnum.WAITING_SELF_LORD;
-import static cn.yjl.game.enumeration.UserGameStatusEnum.WAITING_SELF_START;
 
 @Component
 @Slf4j
@@ -41,23 +36,42 @@ public class GameListener {
     @EventListener
     @Async
     public void joinGameComplete(JoinGameCompleteEvent event) {
-        event.getUserList().stream().filter(this.userEventMap::containsKey).forEach(ExUtil.exWrap(user ->
-            this.userEventMap.get(user).send(new JoinGameEventDto().setUserList(event.getUserList())
-                    .setGameId(event.getGameId()).setUserId(user)
-                    .setGameStatus(WAITING_START.getValue()).setUserStatus(WAITING_SELF_START.getValue())),
-                (user, e) -> this.userEventMap.get(user).completeWithError(e)));
+//        event.getUserList().stream().filter(this.userEventMap::containsKey).forEach(ExUtil.wrapCon(user ->
+//            this.userEventMap.get(user).send(new JoinGameEventDto().setUserList(event.getUserList())
+//                    .setGameId(event.getGameId()).setUserId(user)
+//                    .setGameStatusValue(WAITING_START.getValue()).setUserStatusValue(WAITING_SELF_START.getValue())),
+//                (user, e) -> this.userEventMap.get(user).completeWithError(e)));
+        event.getSource().getEventData(JoinGameEventDto.class, event).stream()
+                .filter(eventData -> this.userEventMap.containsKey(eventData.getUserId()))
+                .forEach(ExUtil.wrapCon(eventData ->
+                                this.userEventMap.get(eventData.getUserId()).send(eventData.setUserList(event.getUserList())),
+                        (eventData, e) -> this.userEventMap.get(eventData.getUserId()).completeWithError(e)));
     }
-    
+
     @EventListener
     @Async
     public void startGameComplete(StartGameCompleteEvent event) {
-        GameService service = AppUtil.autoCast(event.getSource());
-        GameStateDto game = service.distributeCard(event.getGameId());
-        game.getUserList().forEach(ExUtil.exWrap(user ->
-            this.userEventMap.get(user).send(new DistributeCardEventDto()
-                .setCardList(game.getUserInfo().get(user).getGameCards()).setLordUser(game.getLordUser())
-                .setGameId(event.getGameId()).setUserId(user)
-                .setGameStatus(WAITING_LORD.getValue()).setUserStatus(WAITING_SELF_LORD.getValue())),
-            (user, e) -> this.userEventMap.get(user).completeWithError(e)));
+        GameStateDto game = event.getSource().distributeCard(event.getGameId());
+//        game.getUserList().forEach(ExUtil.wrapCon(user ->
+//            this.userEventMap.get(user).send(new DistributeCardEventDto()
+//                .setCardList(game.getUserInfo().get(user).getGameCards()).setLordUser(game.getLordUser())
+//                .setGameId(event.getGameId()).setUserId(user)
+//                .setGameStatusValue(WAITING_LORD.getValue()).setUserStatusValue(WAITING_SELF_LORD.getValue())),
+//            (user, e) -> this.userEventMap.get(user).completeWithError(e)));
+        event.getSource().getEventData(DistributeCardEventDto.class, event)
+                .forEach(ExUtil.wrapCon(eventData ->
+                                this.userEventMap.get(eventData.getUserId()).send(
+                                        eventData.setCardList(game.getUserInfo().get(eventData.getUserId()).getGameCards())
+                                                .setLordUser(game.getLordUser())),
+                        (eventData, e) -> this.userEventMap.get(eventData.getUserId()).completeWithError(e)));
+    }
+
+    @EventListener
+    @Async
+    public void skipLordComplete(SkipLordGameEvent event) {
+        event.getSource().getEventData(SkipLordEventDto.class, event)
+                .forEach(ExUtil.wrapCon(eventData ->
+                                this.userEventMap.get(eventData.getUserId()).send(eventData.setNextLordUser(event.getNextLordUser())),
+                        (eventData, e) -> this.userEventMap.get(eventData.getUserId()).completeWithError(e)));
     }
 }

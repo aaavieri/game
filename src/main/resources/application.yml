@@ -5,3 +5,6 @@ spring:
     driver-class-name: org.apache.derby.jdbc.EmbeddedDriver
     url: jdbc:derby:gameDb;create=true
     username: app
+application:
+  sse:
+    timeout: 0
