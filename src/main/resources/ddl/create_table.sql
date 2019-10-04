@@ -126,4 +126,4 @@ values (4, 13, '方片K');
 insert into T_CARD (colorId, point, label)
 values (5, 20, '小王');
 insert into T_CARD (colorId, point, label)
-values (6, 20, '大王');
+values (6, 30, '大王');

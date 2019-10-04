@@ -39,7 +39,7 @@ public class GameStateDto {
         this.userList.add(userId);
         return this;
     }
-    
+
     public GameStateDto onceSend(OnceSendCardDto onceSendCardDto) {
         this.sentHistory.add(onceSendCardDto);
         return this;

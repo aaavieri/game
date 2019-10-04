@@ -13,7 +13,7 @@ import java.util.stream.Stream;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class FuncUtil {
-    
+
     public static <T> Consumer<T> wrapCon(ConsumerWithEx<T> consumer) {
         return wrapCon(consumer, ExConsumer.getDefault());
     }
@@ -64,12 +64,13 @@ public class FuncUtil {
             return null;
         };
     }
-    
+
     @SafeVarargs
     public static <T> Consumer<T> andCons(Consumer<T>... consumers) {
-        return Stream.of(consumers).reduce(Consumer::andThen).orElse(t -> {});
+        return Stream.of(consumers).reduce(Consumer::andThen).orElse(t -> {
+        });
     }
-    
+
     @SafeVarargs
     public static <T> Function<T, T> andFunc(Function<T, T>... functions) {
         return Stream.of(functions).reduce(Function::andThen).orElse(Function.identity());

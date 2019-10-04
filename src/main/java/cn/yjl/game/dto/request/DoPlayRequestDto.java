@@ -10,5 +10,5 @@ import java.util.List;
 @Data
 @Accessors(chain = true)
 public class DoPlayRequestDto extends BaseRequestDto {
-	private List<Integer> cardList;
+    private List<Integer> cardList;
 }

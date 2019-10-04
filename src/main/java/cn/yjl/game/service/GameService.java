@@ -7,7 +7,7 @@ import cn.yjl.game.dto.UserGameStateDto;
 import cn.yjl.game.dto.event.*;
 import cn.yjl.game.dto.request.BaseRequestDto;
 import cn.yjl.game.dto.request.DoPlayRequestDto;
-import cn.yjl.game.event.*;
+import cn.yjl.game.event.DataInitCompleteEvent;
 import cn.yjl.game.exception.ApplicationException;
 import cn.yjl.game.mapper.CardMapper;
 import cn.yjl.game.pojo.CardPojo;
@@ -23,7 +23,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 import static cn.yjl.game.enumeration.GameStatusEnum.*;
 import static cn.yjl.game.enumeration.UserGameStatusEnum.*;
@@ -87,8 +86,8 @@ public class GameService implements ApplicationListener<DataInitCompleteEvent> {
         if (game.getUserInfo().values().stream().allMatch(user -> user.getStatus().equals(WAITING_OTHER_START))) {
             game.setStatusEnum(WAITING_LORD);
             this.context.publishEvent(this.getEventData(StartGameEventDto.class, requestDto,
-                event -> event.setCardList(game.getUserInfo().get(event.getUserId()).getGameCards()),
-                event -> event.setLordUser(game.getLordUser())));
+                    event -> event.setCardList(game.getUserInfo().get(event.getUserId()).getGameCards()),
+                    event -> event.setLordUser(game.getLordUser())));
         }
 //        this.publishGameStatus(game, requestDto.getUserId());
         return game;
@@ -100,7 +99,7 @@ public class GameService implements ApplicationListener<DataInitCompleteEvent> {
         game.setLordUser(nextLordUser).getUserInfo().get(requestDto.getUserId()).setStatus(WAITING_OTHER_LORD);
         game.getUserInfo().get(nextLordUser).setStatus(WAITING_SELF_LORD);
         this.context.publishEvent(this.getEventData(SkipLordEventDto.class, requestDto,
-            event -> event.setNextLordUser(game.getLordUser())));
+                event -> event.setNextLordUser(game.getLordUser())));
 //        this.publishGameStatus(game, requestDto.getUserId());
         return game;
     }
@@ -111,7 +110,7 @@ public class GameService implements ApplicationListener<DataInitCompleteEvent> {
                 ? WAITING_SELF_PLAY : WAITING_OTHER_PLAY));
 //        this.publishGameStatus(game, requestDto.getUserId());
         this.context.publishEvent(this.getEventData(CallLordEventDto.class, requestDto,
-            event -> event.setLordUser(game.getLordUser())));
+                event -> event.setLordUser(game.getLordUser())));
         return game;
     }
 
@@ -121,10 +120,10 @@ public class GameService implements ApplicationListener<DataInitCompleteEvent> {
         game.getUserInfo().get(requestDto.getUserId()).setStatus(WAITING_OTHER_PLAY);
         game.getUserInfo().get(nextPlayUser).setStatus(WAITING_SELF_PLAY);
         this.context.publishEvent(this.getEventData(SkipPlayEventDto.class, requestDto,
-            event -> event.setNextPlayUser(nextPlayUser)));
+                event -> event.setNextPlayUser(nextPlayUser)));
         return game;
     }
-    
+
     public GameStateDto doPlay(DoPlayRequestDto requestDto) {
         GameStateDto game = this.checkPlay(requestDto);
         OnceSendCardDto onceSendCardDto = this.oncePlay(requestDto.getCardList(), game);
@@ -134,39 +133,39 @@ public class GameService implements ApplicationListener<DataInitCompleteEvent> {
         game.onceSend(onceSendCardDto).getUserInfo().get(requestDto.getUserId()).setStatus(WAITING_OTHER_PLAY);
         game.getUserInfo().get(nextPlayUser).setStatus(WAITING_SELF_PLAY);
         this.context.publishEvent(this.getEventData(DoPlayEventDto.class, requestDto,
-            event -> event.setNextPlayUser(nextPlayUser),
-            event -> event.setSentCard(onceSendCardDto)));
+                event -> event.setNextPlayUser(nextPlayUser),
+                event -> event.setSentCard(onceSendCardDto)));
         return game;
     }
-    
+
     private void distributeCard(int gameId) {
         GameStateDto game = this.getGameWithCheck(gameId);
         Random random = new Random();
         List<CardWrapDto> cardWrapList = this.cardList.stream().map(cardPojo -> new CardWrapDto().setCardPojo(cardPojo)
-            .setGameIndex(random.nextInt(1000)))
-            .sorted(Comparator.comparingInt(CardWrapDto::getGameIndex)).collect(Collectors.toList());
+                .setGameIndex(random.nextInt(1000)))
+                .sorted(Comparator.comparingInt(CardWrapDto::getGameIndex)).collect(Collectors.toList());
         game.setLordUser(game.getUserList().get(random.nextInt(3)))
-            .setLordCardList(cardWrapList.subList(cardWrapList.size() - 3, cardWrapList.size()));
+                .setLordCardList(cardWrapList.subList(cardWrapList.size() - 3, cardWrapList.size()));
         IntStream.range(0, cardWrapList.size() - 3).boxed()
-            .collect(Collectors.groupingBy(index -> game.getUserList().get(index % 3)))
-            .forEach((userId, cardIndexList) -> {
-                List<CardWrapDto> userCards = cardIndexList.stream().map(cardWrapList::get).collect(Collectors.toList());
-                game.getUserInfo().get(userId).setGameCards(new ArrayList<>(userCards));
-                game.getUserInfo().get(userId).setUnsentCards(new ArrayList<>(userCards));
-            });
+                .collect(Collectors.groupingBy(index -> game.getUserList().get(index % 3)))
+                .forEach((userId, cardIndexList) -> {
+                    List<CardWrapDto> userCards = cardIndexList.stream().map(cardWrapList::get).collect(Collectors.toList());
+                    game.getUserInfo().get(userId).setGameCards(new ArrayList<>(userCards));
+                    game.getUserInfo().get(userId).setUnsentCards(new ArrayList<>(userCards));
+                });
     }
-    
+
     @SafeVarargs
     private final <T extends BaseEventDto> List<T> getEventData(Class<T> clazz, BaseRequestDto requestDto, Function<T, T>... setters) {
         Function<T, T> setter = FuncUtil.andFunc(setters);
         int gameId = requestDto.getGameId();
         return this.gameStateMap.get(gameId).getUserList().stream().map(FuncUtil.<String, T>wrapFunc(userId ->
                 AppUtil.autoCast(setter.apply(clazz.newInstance()).setGameId(gameId).setUserId(userId)
-                    .setRequestUser(requestDto.getUserId())
-                    .setGameStatus(this.gameStateMap.get(gameId).getStatusEnum())
-                    .setUserStatus(this.gameStateMap.get(gameId).getUserInfo().get(userId).getStatus())
-                    .setGameStatusValue(this.gameStateMap.get(gameId).getStatusEnum().getValue())
-                    .setUserStatusValue(this.gameStateMap.get(gameId).getUserInfo().get(userId).getStatus().getValue()))))
+                        .setRequestUser(requestDto.getUserId())
+                        .setGameStatus(this.gameStateMap.get(gameId).getStatusEnum())
+                        .setUserStatus(this.gameStateMap.get(gameId).getUserInfo().get(userId).getStatus())
+                        .setGameStatusValue(this.gameStateMap.get(gameId).getStatusEnum().getValue())
+                        .setUserStatusValue(this.gameStateMap.get(gameId).getUserInfo().get(userId).getStatus().getValue()))))
                 .collect(Collectors.toList());
     }
 
@@ -193,11 +192,11 @@ public class GameService implements ApplicationListener<DataInitCompleteEvent> {
         }
         return game;
     }
-    
+
     private String getNextUser(String userId, GameStateDto game) {
         return game.getUserList().get(game.getUserList().indexOf(userId) + 1 % 3);
     }
-    
+
     private OnceSendCardDto oncePlay(List<Integer> cardList, GameStateDto game) {
         // TODO
         return new OnceSendCardDto();

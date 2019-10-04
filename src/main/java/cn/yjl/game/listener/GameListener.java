@@ -37,8 +37,8 @@ public class GameListener {
 //                    .setGameStatusValue(WAITING_START.getValue()).setUserStatusValue(WAITING_SELF_START.getValue())),
 //                (user, e) -> this.userEventMap.get(user).completeWithError(e)));
         eventList.stream().filter(eventData -> this.userEventMap.containsKey(eventData.getUserId()))
-            .forEach(FuncUtil.wrapCon(eventData ->
-                    this.userEventMap.get(eventData.getUserId()).send(eventData),
-                (eventData, e) -> this.userEventMap.get(eventData.getUserId()).completeWithError(e)));
+                .forEach(FuncUtil.wrapCon(eventData ->
+                                this.userEventMap.get(eventData.getUserId()).send(eventData),
+                        (eventData, e) -> this.userEventMap.get(eventData.getUserId()).completeWithError(e)));
     }
 }
