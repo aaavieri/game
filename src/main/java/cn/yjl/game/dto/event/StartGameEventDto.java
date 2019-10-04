@@ -10,7 +10,7 @@ import java.util.List;
 @EqualsAndHashCode(callSuper = true)
 @Data
 @Accessors(chain = true)
-public class DistributeCardEventDto extends BaseEventDto {
+public class StartGameEventDto extends BaseEventDto {
     private String lordUser;
     private List<CardWrapDto> cardList;
 }

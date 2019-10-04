@@ -9,5 +9,6 @@ import java.util.List;
 @Accessors(chain = true)
 public class OnceSendCardDto {
     private String userId;
+    private int type;
     private List<CardWrapDto> sentCards;
 }

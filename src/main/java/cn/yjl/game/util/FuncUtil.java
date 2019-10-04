@@ -9,10 +9,11 @@ import lombok.NoArgsConstructor;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
-public class ExUtil {
-
+public class FuncUtil {
+    
     public static <T> Consumer<T> wrapCon(ConsumerWithEx<T> consumer) {
         return wrapCon(consumer, ExConsumer.getDefault());
     }
@@ -62,5 +63,15 @@ public class ExUtil {
             }
             return null;
         };
+    }
+    
+    @SafeVarargs
+    public static <T> Consumer<T> andCons(Consumer<T>... consumers) {
+        return Stream.of(consumers).reduce(Consumer::andThen).orElse(t -> {});
+    }
+    
+    @SafeVarargs
+    public static <T> Function<T, T> andFunc(Function<T, T>... functions) {
+        return Stream.of(functions).reduce(Function::andThen).orElse(Function.identity());
     }
 }
