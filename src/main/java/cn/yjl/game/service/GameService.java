@@ -1,5 +1,6 @@
 package cn.yjl.game.service;
 
+import cn.yjl.game.algorithm.AlgIf;
 import cn.yjl.game.dto.CardWrapDto;
 import cn.yjl.game.dto.GameStateDto;
 import cn.yjl.game.dto.OnceSendCardDto;
@@ -12,6 +13,7 @@ import cn.yjl.game.exception.ApplicationException;
 import cn.yjl.game.mapper.CardMapper;
 import cn.yjl.game.pojo.CardPojo;
 import cn.yjl.game.util.AppUtil;
+import cn.yjl.game.util.Const;
 import cn.yjl.game.util.FuncUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -35,6 +37,9 @@ public class GameService implements ApplicationListener<DataInitCompleteEvent> {
 
     @Autowired
     private ApplicationContext context;
+
+    @Autowired
+    private List<AlgIf> algList;
 
     private List<CardPojo> cardList;
 
@@ -126,15 +131,27 @@ public class GameService implements ApplicationListener<DataInitCompleteEvent> {
 
     public GameStateDto doPlay(DoPlayRequestDto requestDto) {
         GameStateDto game = this.checkPlay(requestDto);
-        OnceSendCardDto onceSendCardDto = this.oncePlay(requestDto.getCardList(), game);
+        OnceSendCardDto onceSendCardDto = this.oncePlay(requestDto.getCardList(), game, requestDto.getUserId());
         String nextPlayUser = this.getNextUser(requestDto.getUserId(), game);
-        UserGameStateDto userState = game.getUserInfo().get(requestDto.getUserId());
-        onceSendCardDto.getSentCards().forEach(FuncUtil.andCons(userState.getSentCards()::add, userState.getUnsentCards()::remove));
-        game.onceSend(onceSendCardDto).getUserInfo().get(requestDto.getUserId()).setStatus(WAITING_OTHER_PLAY);
+        UserGameStateDto userState = game.onceSend(onceSendCardDto).getUserInfo().get(requestDto.getUserId())
+                .setStatus(WAITING_OTHER_PLAY);
         game.getUserInfo().get(nextPlayUser).setStatus(WAITING_SELF_PLAY);
-        this.context.publishEvent(this.getEventData(DoPlayEventDto.class, requestDto,
-                event -> event.setNextPlayUser(nextPlayUser),
-                event -> event.setSentCard(onceSendCardDto)));
+        onceSendCardDto.getSentCards().forEach(FuncUtil.andCons(userState.getSentCards()::add, userState.getUnsentCards()::remove));
+        if (userState.getUnsentCards().size() == 0) {
+            game.setStatusEnum(COMPLETE);
+            List<String> winners = game.getUserInfo().values().stream().peek(everyOneState ->
+                    everyOneState.setStatus(everyOneState.getUserId().equals(requestDto.getUserId())
+                            || (!everyOneState.getUserId().equals(game.getLordUser()) && !userState.getUserId().equals(game.getLordUser()))
+                            ? WIN : LOST)).filter(user -> user.getStatus().equals(WIN))
+                    .map(UserGameStateDto::getUserId).collect(Collectors.toList());
+            this.context.publishEvent(this.getEventData(CompleteGameEventDto.class, requestDto,
+                    event -> event.setWinner(winners),
+                    event -> event.setSentCard(onceSendCardDto)));
+        } else {
+            this.context.publishEvent(this.getEventData(DoPlayEventDto.class, requestDto,
+                    event -> event.setNextPlayUser(nextPlayUser),
+                    event -> event.setSentCard(onceSendCardDto)));
+        }
         return game;
     }
 
@@ -197,8 +214,26 @@ public class GameService implements ApplicationListener<DataInitCompleteEvent> {
         return game.getUserList().get(game.getUserList().indexOf(userId) + 1 % 3);
     }
 
-    private OnceSendCardDto oncePlay(List<Integer> cardList, GameStateDto game) {
-        // TODO
-        return new OnceSendCardDto();
+    private OnceSendCardDto oncePlay(List<Integer> cardIndexList, GameStateDto game, String requestUser) {
+        UserGameStateDto userState = game.getUserInfo().get(requestUser);
+        List<CardWrapDto> cardList = cardIndexList.stream().map(id -> userState.getUnsentCards().stream()
+                .filter(card -> card.getGameIndex() == id).findFirst().orElseThrow(() ->
+                        new ApplicationException().setErrCode(8).setMessage("有牌不在未出牌堆中，id:" + id)))
+                .collect(Collectors.toList());
+        OnceSendCardDto lastOne = game.getSentHistory().isEmpty()
+                ? null : game.getSentHistory().get(game.getSentHistory().size() - 1);
+        OnceSendCardDto nowOne = this.algList.stream().filter(alg -> lastOne == null || lastOne.getUserId().equals(requestUser)
+                || alg.getType() == lastOne.getType() || alg.getPriority() > lastOne.getPriority())
+                .map(alg -> alg.generate(cardList, requestUser)).max(Comparator.comparingInt(OnceSendCardDto::getValue))
+                .orElseThrow(() -> new ApplicationException().setErrCode(9).setMessage("牌型不正确"));
+        if (lastOne != null && lastOne.getUserId().equals(requestUser)) {
+            int compareResult = nowOne.compare(lastOne);
+            if (compareResult == Const.COMPARE_CARD_CANNOT) {
+                throw new ApplicationException().setErrCode(10).setMessage("虽然牌型相同，但无法于上一手出牌比较大小");
+            } else if (compareResult < 1) {
+                throw new ApplicationException().setErrCode(11).setMessage("不比上一手出牌大，无法出牌");
+            }
+        }
+        return nowOne;
     }
 }

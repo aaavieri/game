@@ -9,7 +9,9 @@ public enum UserGameStatusEnum {
     WAITING_SELF_LORD(4),
     WAITING_OTHER_LORD(5),
     WAITING_SELF_PLAY(6),
-    WAITING_OTHER_PLAY(7);
+    WAITING_OTHER_PLAY(7),
+    LOST(8),
+    WIN(9);
 
     @Getter
     private int value;

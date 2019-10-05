@@ -2,7 +2,10 @@ package cn.yjl.game.algorithm;
 
 import cn.yjl.game.dto.CardWrapDto;
 import cn.yjl.game.dto.OnceSendCardDto;
+import org.springframework.util.comparator.Comparators;
 
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -40,11 +43,28 @@ public interface AlgIf {
         return cards.stream().collect(Collectors.groupingBy(card -> card.getCardPojo().getPoint()));
     }
 
-    default boolean isSequence(List<CardWrapDto> cards) {
-        List<Integer> valueList = cards.stream().map(card ->
-                this.getMaxSpecialValue(card.getCardPojo().getPoint())).distinct().sorted()
+    default boolean isSequenceCard(Collection<CardWrapDto> cards) {
+        List<Integer> points = this.getPointsByCards(cards);
+        return this.isSequencePoint(points);
+    }
+
+    default boolean isSequencePoint(Collection<Integer> points) {
+        List<Integer> valueList = points.stream().map(this::getMaxSpecialValue).distinct().sorted()
                 .collect(Collectors.toList());
-        return (valueList.size() == cards.size()
-                && (valueList.get(valueList.size() - 1) - valueList.get(0) == cards.size() - 1));
+        return (valueList.size() == points.size()
+                && (valueList.get(valueList.size() - 1) - valueList.get(0) == points.size() - 1));
+    }
+
+    default List<Integer> getPointsByCards(Collection<CardWrapDto> cards) {
+        return cards.stream().map(card -> card.getCardPojo().getPoint()).collect(Collectors.toList());
+    }
+
+    default int getMaxValueCard(Collection<CardWrapDto> cards) {
+        List<Integer> points = this.getPointsByCards(cards);
+        return this.getMaxValuePoint(points);
+    }
+
+    default int getMaxValuePoint(Collection<Integer> points) {
+        return points.stream().map(this::getMaxSpecialValue).max(Integer::compareTo).orElse(0);
     }
 }
