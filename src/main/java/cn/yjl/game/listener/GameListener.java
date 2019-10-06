@@ -31,11 +31,6 @@ public class GameListener {
     @EventListener
     @Async
     public <T extends BaseEventDto> void sseEvent(List<T> eventList) {
-//        event.getUserList().stream().filter(this.userEventMap::containsKey).forEach(FuncUtil.wrapCon(user ->
-//            this.userEventMap.get(user).send(new JoinGameEventDto().setUserList(event.getUserList())
-//                    .setGameId(event.getGameId()).setUserId(user)
-//                    .setGameStatusValue(WAITING_START.getValue()).setUserStatusValue(WAITING_SELF_START.getValue())),
-//                (user, e) -> this.userEventMap.get(user).completeWithError(e)));
         eventList.stream().filter(eventData -> this.userEventMap.containsKey(eventData.getUserId()))
                 .forEach(FuncUtil.wrapCon(eventData ->
                                 this.userEventMap.get(eventData.getUserId()).send(eventData),

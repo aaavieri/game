@@ -10,8 +10,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static cn.yjl.game.enumeration.GameStatusEnum.NOT_ENOUGH_USER;
-import static cn.yjl.game.enumeration.UserGameStatusEnum.WAITING_OTHER_JOIN;
+import static cn.yjl.game.enumeration.GameStatusEnum.*;
+import static cn.yjl.game.enumeration.UserGameStatusEnum.*;
 
 @Data
 @Accessors(chain = true)
@@ -32,7 +32,7 @@ public class GameStateDto {
     @Getter
     private List<String> userList = new ArrayList<>();
 
-    private GameStatusEnum statusEnum = NOT_ENOUGH_USER;
+    private GameStatusEnum status = NOT_ENOUGH_USER;
 
     public GameStateDto addUser(String userId) {
         this.userInfo.put(userId, new UserGameStateDto().setUserId(userId).setStatus(WAITING_OTHER_JOIN));
@@ -40,8 +40,29 @@ public class GameStateDto {
         return this;
     }
 
+    public GameStateDto removeUser(String userId) {
+        this.userInfo.remove(userId);
+        this.userList.remove(userId);
+        return this;
+    }
+
     public GameStateDto onceSend(OnceSendCardDto onceSendCardDto) {
         this.sentHistory.add(onceSendCardDto);
         return this;
+    }
+
+    public synchronized void reset() {
+        if (!this.status.equals(COMPLETE)) {
+            return;
+        }
+        this.lordUser = null;
+        this.sentHistory.clear();
+        this.userInfo.values().forEach(userState -> {
+            userState.setStatus(WAITING_SELF_START);
+            userState.getGameCards().clear();
+            userState.getSentCards().clear();
+            userState.getUnsentCards().clear();
+        });
+        this.status = WAITING_START;
     }
 }

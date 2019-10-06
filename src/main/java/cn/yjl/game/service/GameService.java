@@ -55,10 +55,10 @@ public class GameService implements ApplicationListener<DataInitCompleteEvent> {
     public GameStateDto joinGame(BaseRequestDto requestDto) throws ApplicationException {
         if (this.gameStateMap.values().stream().anyMatch(
                 state -> state.getUserInfo().containsKey(requestDto.getUserId())
-                        && state.getStatusEnum().getValue() < COMPLETE.getValue())) {
+                        && state.getStatus().getValue() < COMPLETE.getValue())) {
             throw new ApplicationException().setMessage("用户尚有未完成的游戏").setErrCode(1);
         }
-        GameStateDto game = this.gameStateMap.get(gameCounter.get());
+        GameStateDto game = this.findGameToJoin();
         if (game != null && game.getUserList().size() < 3) {
             game.addUser(requestDto.getUserId());
         } else {
@@ -68,33 +68,17 @@ public class GameService implements ApplicationListener<DataInitCompleteEvent> {
         game.getUserInfo().values().forEach(user -> user.setStatus(WAITING_SELF_START));
         requestDto.setGameId(game.getGameId());
         if (game.getUserList().size() == 3) {
-            game.setStatusEnum(WAITING_START);
-            final List<String> userList = game.getUserList();
-            this.context.publishEvent(this.getEventData(JoinGameEventDto.class, requestDto, event -> event.setUserList(userList)));
+            game.setStatus(WAITING_START);
         }
+        final List<String> userList = game.getUserList();
+        this.context.publishEvent(this.getEventData(JoinGameEventDto.class, requestDto, event -> event.setUserList(userList)));
         return game;
     }
 
     public GameStateDto startGame(BaseRequestDto requestDto) {
-        GameStateDto game = this.gameStateMap.get(requestDto.getGameId());
-        if (game.getUserList().size() != 3) {
-            throw new ApplicationException().setMessage("当前游戏人员不齐").setErrCode(2);
-        }
-        if (game.getStatusEnum().equals(WAITING_START)) {
-            throw new ApplicationException().setMessage("游戏状态错误").setErrCode(3);
-        }
-        if (!game.getUserInfo().containsKey(requestDto.getUserId())) {
-            throw new ApplicationException().setMessage("用户不在该局游戏中").setErrCode(4);
-        }
-        game.getUserInfo().get(requestDto.getUserId()).setStatus(WAITING_OTHER_START);
-        this.distributeCard(game.getGameId());
-        if (game.getUserInfo().values().stream().allMatch(user -> user.getStatus().equals(WAITING_OTHER_START))) {
-            game.setStatusEnum(WAITING_LORD);
-            this.context.publishEvent(this.getEventData(StartGameEventDto.class, requestDto,
-                    event -> event.setCardList(game.getUserInfo().get(event.getUserId()).getGameCards()),
-                    event -> event.setLordUser(game.getLordUser())));
-        }
-//        this.publishGameStatus(game, requestDto.getUserId());
+        GameStateDto game = this.getGameWithCheck(requestDto);
+        this.checkFirstStartGame(game);
+        this.processStart(game, requestDto);
         return game;
     }
 
@@ -105,15 +89,13 @@ public class GameService implements ApplicationListener<DataInitCompleteEvent> {
         game.getUserInfo().get(nextLordUser).setStatus(WAITING_SELF_LORD);
         this.context.publishEvent(this.getEventData(SkipLordEventDto.class, requestDto,
                 event -> event.setNextLordUser(game.getLordUser())));
-//        this.publishGameStatus(game, requestDto.getUserId());
         return game;
     }
 
     public GameStateDto callLord(BaseRequestDto requestDto) {
         GameStateDto game = this.checkLord(requestDto);
-        game.getUserInfo().values().forEach(user -> user.setStatus(user.getUserId().equals(requestDto.getUserId())
-                ? WAITING_SELF_PLAY : WAITING_OTHER_PLAY));
-//        this.publishGameStatus(game, requestDto.getUserId());
+        game.setStatus(PLAYING).getUserInfo().values().forEach(user ->
+                user.setStatus(user.getUserId().equals(requestDto.getUserId()) ? WAITING_SELF_PLAY : WAITING_OTHER_PLAY));
         this.context.publishEvent(this.getEventData(CallLordEventDto.class, requestDto,
                 event -> event.setLordUser(game.getLordUser())));
         return game;
@@ -138,7 +120,7 @@ public class GameService implements ApplicationListener<DataInitCompleteEvent> {
         game.getUserInfo().get(nextPlayUser).setStatus(WAITING_SELF_PLAY);
         onceSendCardDto.getSentCards().forEach(FuncUtil.andCons(userState.getSentCards()::add, userState.getUnsentCards()::remove));
         if (userState.getUnsentCards().size() == 0) {
-            game.setStatusEnum(COMPLETE);
+            game.setStatus(COMPLETE);
             List<String> winners = game.getUserInfo().values().stream().peek(everyOneState ->
                     everyOneState.setStatus(everyOneState.getUserId().equals(requestDto.getUserId())
                             || (!everyOneState.getUserId().equals(game.getLordUser()) && !userState.getUserId().equals(game.getLordUser()))
@@ -155,8 +137,51 @@ public class GameService implements ApplicationListener<DataInitCompleteEvent> {
         return game;
     }
 
-    private void distributeCard(int gameId) {
-        GameStateDto game = this.getGameWithCheck(gameId);
+    public GameStateDto restart(BaseRequestDto requestDto) {
+        GameStateDto game = this.checkRestart(requestDto);
+        if (game.getStatus().equals(COMPLETE)) {
+            game.reset();
+        }
+        this.processStart(game, requestDto);
+        return game;
+    }
+
+    public GameStateDto quitGame(BaseRequestDto requestDto) {
+        GameStateDto game = this.checkQuit(requestDto);
+        game.removeUser(requestDto.getUserId()).setStatus(NOT_ENOUGH_USER).getUserInfo()
+                .forEach((userId, userState) -> userState.setStatus(WAITING_OTHER_JOIN));
+        this.context.publishEvent(this.getEventData(QuitGameEventDto.class, requestDto,
+                event -> event.setQuitUser(requestDto.getUserId())));
+        return game;
+    }
+
+    private void checkFirstStartGame(GameStateDto game) {
+        if (game.getUserList().size() != 3) {
+            throw new ApplicationException().setMessage("当前游戏人员不齐").setErrCode(2);
+        }
+        if (game.getStatus().equals(WAITING_START)) {
+            throw new ApplicationException().setMessage("游戏状态错误").setErrCode(3);
+        }
+    }
+
+    private void processStart(GameStateDto game, BaseRequestDto request) {
+        game.getUserInfo().get(request.getUserId()).setStatus(WAITING_OTHER_START);
+        if (game.getUserInfo().values().stream().allMatch(user -> user.getStatus().equals(WAITING_OTHER_START))) {
+            this.distributeCard(request);
+            game.setStatus(WAITING_LORD);
+        }
+        this.context.publishEvent(this.getEventData(StartGameEventDto.class, request,
+                event -> event.setCardList(game.getUserInfo().get(event.getUserId()).getGameCards()),
+                event -> event.setLordUser(game.getLordUser())));
+    }
+
+    private GameStateDto findGameToJoin() {
+        return this.gameStateMap.values().stream().filter(game -> game.getUserList().size() < 3
+                && game.getStatus().equals(NOT_ENOUGH_USER)).findFirst().orElse(null);
+    }
+
+    private void distributeCard(BaseRequestDto request) {
+        GameStateDto game = this.getGameWithCheck(request);
         Random random = new Random();
         List<CardWrapDto> cardWrapList = this.cardList.stream().map(cardPojo -> new CardWrapDto().setCardPojo(cardPojo)
                 .setGameIndex(random.nextInt(1000)))
@@ -172,29 +197,19 @@ public class GameService implements ApplicationListener<DataInitCompleteEvent> {
                 });
     }
 
-    @SafeVarargs
-    private final <T extends BaseEventDto> List<T> getEventData(Class<T> clazz, BaseRequestDto requestDto, Function<T, T>... setters) {
-        Function<T, T> setter = FuncUtil.andFunc(setters);
-        int gameId = requestDto.getGameId();
-        return this.gameStateMap.get(gameId).getUserList().stream().map(FuncUtil.<String, T>wrapFunc(userId ->
-                AppUtil.autoCast(setter.apply(clazz.newInstance()).setGameId(gameId).setUserId(userId)
-                        .setRequestUser(requestDto.getUserId())
-                        .setGameStatus(this.gameStateMap.get(gameId).getStatusEnum())
-                        .setUserStatus(this.gameStateMap.get(gameId).getUserInfo().get(userId).getStatus())
-                        .setGameStatusValue(this.gameStateMap.get(gameId).getStatusEnum().getValue())
-                        .setUserStatusValue(this.gameStateMap.get(gameId).getUserInfo().get(userId).getStatus().getValue()))))
-                .collect(Collectors.toList());
-    }
-
-    private GameStateDto getGameWithCheck(int gameId) {
-        if (this.gameStateMap.containsKey(gameId)) {
-            throw new ApplicationException().setMessage("不存在该局游戏，gameId：" + gameId).setErrCode(5);
+    private GameStateDto getGameWithCheck(BaseRequestDto request) {
+        GameStateDto game = this.gameStateMap.get(request.getGameId());
+        if (game == null) {
+            throw new ApplicationException().setMessage("不存在该局游戏，gameId：" + request.getGameId()).setErrCode(5);
         }
-        return this.gameStateMap.get(gameId);
+        if (!game.getUserInfo().containsKey(request.getUserId())) {
+            throw new ApplicationException().setMessage("用户不在该局游戏中").setErrCode(4);
+        }
+        return game;
     }
 
     private GameStateDto checkLord(BaseRequestDto requestDto) {
-        GameStateDto game = this.getGameWithCheck(requestDto.getGameId());
+        GameStateDto game = this.getGameWithCheck(requestDto);
         if (!game.getLordUser().equals(requestDto.getUserId())) {
             throw new ApplicationException().setMessage("当前叫地主顺序还未轮到").setErrCode(6);
         }
@@ -202,7 +217,7 @@ public class GameService implements ApplicationListener<DataInitCompleteEvent> {
     }
 
     private GameStateDto checkPlay(BaseRequestDto requestDto) {
-        GameStateDto game = this.getGameWithCheck(requestDto.getGameId());
+        GameStateDto game = this.getGameWithCheck(requestDto);
         if (game.getUserInfo().values().stream().noneMatch(userState -> userState.getStatus().equals(WAITING_SELF_PLAY)
                 && userState.getUserId().equals(requestDto.getUserId()))) {
             throw new ApplicationException().setMessage("当前出牌顺序还未轮到").setErrCode(7);
@@ -210,8 +225,42 @@ public class GameService implements ApplicationListener<DataInitCompleteEvent> {
         return game;
     }
 
+    private GameStateDto checkRestart(BaseRequestDto request) {
+        GameStateDto game = this.getGameWithCheck(request);
+        if (!game.getStatus().equals(COMPLETE)
+                && !game.getStatus().equals(WAITING_START)
+                && !game.getStatus().equals(NOT_ENOUGH_USER)) {
+            throw new ApplicationException().setMessage("当前游戏还不能重新开始").setErrCode(8);
+        }
+        return game;
+    }
+
+    private GameStateDto checkQuit(BaseRequestDto request) {
+        GameStateDto game = this.getGameWithCheck(request);
+        if (!game.getStatus().equals(COMPLETE)
+                && !game.getStatus().equals(WAITING_START)
+                && !game.getStatus().equals(NOT_ENOUGH_USER)) {
+            throw new ApplicationException().setMessage("当前游戏还不能退出").setErrCode(8);
+        }
+        return game;
+    }
+
     private String getNextUser(String userId, GameStateDto game) {
         return game.getUserList().get(game.getUserList().indexOf(userId) + 1 % 3);
+    }
+
+    @SafeVarargs
+    private final <T extends BaseEventDto> List<T> getEventData(Class<T> clazz, BaseRequestDto requestDto, Function<T, T>... setters) {
+        Function<T, T> setter = FuncUtil.andFunc(setters);
+        int gameId = requestDto.getGameId();
+        return this.gameStateMap.get(gameId).getUserList().stream().map(FuncUtil.<String, T>wrapFunc(userId ->
+                AppUtil.autoCast(setter.apply(clazz.newInstance()).setGameId(gameId).setUserId(userId)
+                        .setRequestUser(requestDto.getUserId())
+                        .setGameStatus(this.gameStateMap.get(gameId).getStatus())
+                        .setUserStatus(this.gameStateMap.get(gameId).getUserInfo().get(userId).getStatus())
+                        .setGameStatusValue(this.gameStateMap.get(gameId).getStatus().getValue())
+                        .setUserStatusValue(this.gameStateMap.get(gameId).getUserInfo().get(userId).getStatus().getValue()))))
+                .collect(Collectors.toList());
     }
 
     private OnceSendCardDto oncePlay(List<Integer> cardIndexList, GameStateDto game, String requestUser) {

@@ -2,6 +2,7 @@ package cn.yjl.game.controller;
 
 import cn.yjl.game.dto.ResponseJsonDto;
 import cn.yjl.game.dto.request.BaseRequestDto;
+import cn.yjl.game.dto.request.DoPlayRequestDto;
 import cn.yjl.game.dto.request.LoginRequestDto;
 import cn.yjl.game.listener.GameListener;
 import cn.yjl.game.service.GameService;
@@ -54,6 +55,21 @@ public class GameController {
 
     @PostMapping("/skipPlay")
     public ResponseJsonDto skipPlay(@RequestBody BaseRequestDto requestDto) {
-        return new ResponseJsonDto().setData(this.gameService.callLord(requestDto).getGameId());
+        return new ResponseJsonDto().setData(this.gameService.skipPlay(requestDto).getGameId());
+    }
+
+    @PostMapping("/doPlay")
+    public ResponseJsonDto doPlay(@RequestBody DoPlayRequestDto requestDto) {
+        return new ResponseJsonDto().setData(this.gameService.doPlay(requestDto).getGameId());
+    }
+
+    @PostMapping("/restart")
+    public ResponseJsonDto restart(@RequestBody DoPlayRequestDto requestDto) {
+        return new ResponseJsonDto().setData(this.gameService.restart(requestDto).getGameId());
+    }
+
+    @PostMapping("/quitGame")
+    public ResponseJsonDto quitGame(@RequestBody DoPlayRequestDto requestDto) {
+        return new ResponseJsonDto().setData(this.gameService.quitGame(requestDto).getGameId());
     }
 }
