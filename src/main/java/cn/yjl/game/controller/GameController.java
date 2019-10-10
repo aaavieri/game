@@ -7,10 +7,7 @@ import cn.yjl.game.dto.request.LoginRequestDto;
 import cn.yjl.game.listener.GameListener;
 import cn.yjl.game.service.GameService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @RestController
@@ -28,9 +25,9 @@ public class GameController {
         return new ResponseJsonDto();
     }
 
-    @PostMapping("/gameEvent")
-    public SseEmitter gameEvent(@RequestBody BaseRequestDto requestDto) {
-        return this.gameListener.registerEvent(requestDto.getUserId());
+    @GetMapping("/gameEvent/{userId}")
+    public SseEmitter gameEvent(@PathVariable String userId) {
+        return this.gameListener.registerEvent(userId);
     }
 
     @PostMapping("/joinGame")
