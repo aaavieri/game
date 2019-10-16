@@ -4,6 +4,7 @@ import cn.yjl.game.dto.CardWrapDto;
 import cn.yjl.game.dto.OnceSendCardDto;
 
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -17,6 +18,7 @@ public interface AlgIf {
     int getValue(List<CardWrapDto> cards);
 
     default OnceSendCardDto generate(List<CardWrapDto> cards, String userId) {
+        cards.sort(Comparator.comparingInt(card -> this.getMaxSpecialValue(card.getCardPojo().getPoint())));
         int value = this.getValue(cards);
         if (value <= 0) {
             return null;
