@@ -9,4 +9,5 @@ import lombok.experimental.Accessors;
 public class CardWrapDto {
     private CardPojo cardPojo;
     private int gameIndex;
+    private boolean lordCard = false;
 }

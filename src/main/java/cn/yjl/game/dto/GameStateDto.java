@@ -11,7 +11,8 @@ import java.util.List;
 import java.util.Map;
 
 import static cn.yjl.game.enumeration.GameStatusEnum.*;
-import static cn.yjl.game.enumeration.UserGameStatusEnum.*;
+import static cn.yjl.game.enumeration.UserGameStatusEnum.WAITING_OTHER_JOIN;
+import static cn.yjl.game.enumeration.UserGameStatusEnum.WAITING_SELF_START;
 
 @Data
 @Accessors(chain = true)

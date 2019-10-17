@@ -96,8 +96,11 @@ public class GameService implements ApplicationListener<DataInitCompleteEvent> {
         GameStateDto game = this.checkLord(requestDto);
         game.setStatus(PLAYING).getUserInfo().values().forEach(user ->
                 user.setStatus(user.getUserId().equals(requestDto.getUserId()) ? WAITING_SELF_PLAY : WAITING_OTHER_PLAY));
+        game.getLordCardList().stream().peek(game.getUserInfo().get(requestDto.getUserId()).getGameCards()::add)
+                .forEach(game.getUserInfo().get(requestDto.getUserId()).getUnsentCards()::add);
         this.context.publishEvent(this.getEventData(CallLordEventDto.class, requestDto,
-                event -> event.setLordUser(game.getLordUser())));
+                event -> event.setLordUser(game.getLordUser()),
+                event -> event.setLordCards(game.getLordCardList())));
         return game;
     }
 
@@ -188,6 +191,7 @@ public class GameService implements ApplicationListener<DataInitCompleteEvent> {
                 .sorted(Comparator.comparingInt(CardWrapDto::getGameIndex)).collect(Collectors.toList());
         game.setLordUser(game.getUserList().get(random.nextInt(3)))
                 .setLordCardList(cardWrapList.subList(cardWrapList.size() - 3, cardWrapList.size()));
+        game.getLordCardList().forEach(card -> card.setLordCard(true));
         IntStream.range(0, cardWrapList.size() - 3).boxed()
                 .collect(Collectors.groupingBy(index -> game.getUserList().get(index % 3)))
                 .forEach((userId, cardIndexList) -> {

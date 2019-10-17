@@ -10,6 +10,8 @@ public class BombAlg implements AlgIf {
 
     @Override
     public int getPriority() {
+        {
+        }
         return 2;
     }
 
