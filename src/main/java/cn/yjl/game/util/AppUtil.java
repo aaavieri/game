@@ -56,4 +56,10 @@ public class AppUtil {
             }).collect(Collectors.toList());
         }
     }
+
+    public static <T> void clearList(List<T> src) {
+        if (src != null) {
+            src.clear();
+        }
+    }
 }

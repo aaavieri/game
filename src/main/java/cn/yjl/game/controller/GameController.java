@@ -69,4 +69,16 @@ public class GameController {
     public ResponseJsonDto quitGame(@RequestBody DoPlayRequestDto requestDto) {
         return new ResponseJsonDto().setData(this.gameService.quitGame(requestDto).getGameId());
     }
+
+    //  TODO FOR TEST
+    @GetMapping("/resetGame/{gameId}")
+    public ResponseJsonDto resetGame(@PathVariable int gameId) {
+        return new ResponseJsonDto().setData(this.gameService.resetGame(gameId).getGameId());
+    }
+
+    @GetMapping("/resetAll")
+    public ResponseJsonDto resetAll() {
+        this.gameService.resetAll();
+        return new ResponseJsonDto().setData(null);
+    }
 }

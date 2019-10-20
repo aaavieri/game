@@ -1,6 +1,7 @@
 package cn.yjl.game.dto;
 
 import cn.yjl.game.enumeration.GameStatusEnum;
+import cn.yjl.game.util.AppUtil;
 import lombok.Data;
 import lombok.Getter;
 import lombok.experimental.Accessors;
@@ -60,9 +61,9 @@ public class GameStateDto {
         this.sentHistory.clear();
         this.userInfo.values().forEach(userState -> {
             userState.setStatus(WAITING_SELF_START);
-            userState.getGameCards().clear();
-            userState.getSentCards().clear();
-            userState.getUnsentCards().clear();
+            AppUtil.clearList(userState.getGameCards());
+            AppUtil.clearList(userState.getSentCards());
+            AppUtil.clearList(userState.getUnsentCards());
         });
         this.status = WAITING_START;
     }

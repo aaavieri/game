@@ -254,17 +254,18 @@ public class GameService implements ApplicationListener<DataInitCompleteEvent> {
     }
 
     @SafeVarargs
-    private final <T extends BaseEventDto> List<T> getEventData(Class<T> clazz, BaseRequestDto requestDto, Function<T, T>... setters) {
+    private final <T extends BaseEventDto> GameEventWrapDto getEventData(Class<T> clazz, BaseRequestDto requestDto, Function<T, T>... setters) {
         Function<T, T> setter = FuncUtil.andFunc(setters);
         int gameId = requestDto.getGameId();
-        return this.gameStateMap.get(gameId).getUserList().stream().map(FuncUtil.<String, T>wrapFunc(userId ->
-                AppUtil.autoCast(setter.apply(clazz.newInstance()).setGameId(gameId).setUserId(userId)
-                        .setRequestUser(requestDto.getUserId())
-                        .setGameStatus(this.gameStateMap.get(gameId).getStatus())
-                        .setUserStatus(this.gameStateMap.get(gameId).getUserInfo().get(userId).getStatus())
-                        .setGameStatusValue(this.gameStateMap.get(gameId).getStatus().getValue())
-                        .setUserStatusValue(this.gameStateMap.get(gameId).getUserInfo().get(userId).getStatus().getValue()))))
-                .collect(Collectors.toList());
+        return new GameEventWrapDto<>().setGameId(gameId)
+                .setEventData(this.gameStateMap.get(gameId).getUserList().stream().map(FuncUtil.<String, T>wrapFunc(userId ->
+                        AppUtil.autoCast(setter.apply(clazz.newInstance()).setGameId(gameId).setUserId(userId)
+                                .setRequestUser(requestDto.getUserId())
+                                .setGameStatus(this.gameStateMap.get(gameId).getStatus())
+                                .setUserStatus(this.gameStateMap.get(gameId).getUserInfo().get(userId).getStatus())
+                                .setGameStatusValue(this.gameStateMap.get(gameId).getStatus().getValue())
+                                .setUserStatusValue(this.gameStateMap.get(gameId).getUserInfo().get(userId).getStatus().getValue()))))
+                        .collect(Collectors.toList()));
     }
 
     private OnceSendCardDto oncePlay(List<Integer> cardIndexList, GameStateDto game, String requestUser) {
@@ -288,5 +289,17 @@ public class GameService implements ApplicationListener<DataInitCompleteEvent> {
             }
         }
         return nowOne;
+    }
+
+    // TODO FOR TEST
+    public GameStateDto resetGame(int gameId) {
+        this.gameStateMap.get(gameId).setStatus(COMPLETE).reset();
+        this.gameStateMap.get(gameId).getUserList().clear();
+        this.gameStateMap.get(gameId).getUserInfo().clear();
+        return this.gameStateMap.get(gameId);
+    }
+
+    public void resetAll() {
+        this.gameStateMap.clear();
     }
 }
