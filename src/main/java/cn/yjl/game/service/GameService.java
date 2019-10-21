@@ -52,7 +52,8 @@ public class GameService implements ApplicationListener<DataInitCompleteEvent> {
         this.cardList = this.cardMapper.getAllCards();
     }
 
-    public GameStateDto joinGame(BaseRequestDto requestDto) throws ApplicationException {
+    // join game的时候收不到自己事件的通知
+    public GameEventWrapDto joinGame(BaseRequestDto requestDto) throws ApplicationException {
         if (this.gameStateMap.values().stream().anyMatch(
                 state -> state.getUserInfo().containsKey(requestDto.getUserId())
                         && state.getStatus().getValue() < COMPLETE.getValue())) {
@@ -71,8 +72,9 @@ public class GameService implements ApplicationListener<DataInitCompleteEvent> {
             game.setStatus(WAITING_START);
         }
         final List<String> userList = game.getUserList();
-        this.context.publishEvent(this.getEventData(JoinGameEventDto.class, requestDto, event -> event.setUserList(userList)));
-        return game;
+        GameEventWrapDto retDto = this.getEventData(JoinGameEventDto.class, requestDto, event -> event.setUserList(userList));
+        this.context.publishEvent(retDto);
+        return retDto;
     }
 
     public GameStateDto startGame(BaseRequestDto requestDto) {
@@ -162,7 +164,7 @@ public class GameService implements ApplicationListener<DataInitCompleteEvent> {
         if (game.getUserList().size() != 3) {
             throw new ApplicationException().setMessage("当前游戏人员不齐").setErrCode(2);
         }
-        if (game.getStatus().equals(WAITING_START)) {
+        if (!game.getStatus().equals(WAITING_START)) {
             throw new ApplicationException().setMessage("游戏状态错误").setErrCode(3);
         }
     }
@@ -257,7 +259,7 @@ public class GameService implements ApplicationListener<DataInitCompleteEvent> {
     private final <T extends BaseEventDto> GameEventWrapDto getEventData(Class<T> clazz, BaseRequestDto requestDto, Function<T, T>... setters) {
         Function<T, T> setter = FuncUtil.andFunc(setters);
         int gameId = requestDto.getGameId();
-        return new GameEventWrapDto<>().setGameId(gameId)
+        return new GameEventWrapDto().setGameId(gameId)
                 .setEventData(this.gameStateMap.get(gameId).getUserList().stream().map(FuncUtil.<String, T>wrapFunc(userId ->
                         AppUtil.autoCast(setter.apply(clazz.newInstance()).setGameId(gameId).setUserId(userId)
                                 .setRequestUser(requestDto.getUserId())
