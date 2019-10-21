@@ -43,11 +43,9 @@ public class GameListener {
 
     @EventListener
     @Async
-    public <T extends BaseEventDto> void sseEvent(GameEventWrapDto<T> gameEvent) {
+    public <T extends BaseEventDto> void sseEvent(GameEventWrapDto gameEvent) {
         gameEvent.getEventData()
-                .forEach(eventData -> {
-                    System.out.println(eventData.getUserId());
-                    this.messagingTemplate.convertAndSend("/topic/gameEvent/" + eventData.getUserId(), eventData);
-                });
+                .forEach(eventData -> this.messagingTemplate.convertAndSend("/topic/gameEvent/"
+                        + eventData.getUserId(), eventData));
     }
 }

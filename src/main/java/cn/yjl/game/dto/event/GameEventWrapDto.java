@@ -7,7 +7,7 @@ import java.util.List;
 
 @Data
 @Accessors(chain = true)
-public class GameEventWrapDto<T extends BaseEventDto> {
+public class GameEventWrapDto {
     private int gameId;
-    private List<T> eventData;
+    private List<BaseEventDto> eventData;
 }

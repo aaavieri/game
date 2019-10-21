@@ -260,13 +260,13 @@ public class GameService implements ApplicationListener<DataInitCompleteEvent> {
         Function<T, T> setter = FuncUtil.andFunc(setters);
         int gameId = requestDto.getGameId();
         return new GameEventWrapDto().setGameId(gameId)
-                .setEventData(this.gameStateMap.get(gameId).getUserList().stream().map(FuncUtil.<String, T>wrapFunc(userId ->
-                        AppUtil.autoCast(setter.apply(clazz.newInstance()).setGameId(gameId).setUserId(userId)
+                .setEventData(this.gameStateMap.get(gameId).getUserList().stream().map(FuncUtil.wrapFunc(userId ->
+                        setter.apply(AppUtil.autoCast(clazz.newInstance().setGameId(gameId).setUserId(userId)
                                 .setRequestUser(requestDto.getUserId())
                                 .setGameStatus(this.gameStateMap.get(gameId).getStatus())
                                 .setUserStatus(this.gameStateMap.get(gameId).getUserInfo().get(userId).getStatus())
                                 .setGameStatusValue(this.gameStateMap.get(gameId).getStatus().getValue())
-                                .setUserStatusValue(this.gameStateMap.get(gameId).getUserInfo().get(userId).getStatus().getValue()))))
+                                .setUserStatusValue(this.gameStateMap.get(gameId).getUserInfo().get(userId).getStatus().getValue())))))
                         .collect(Collectors.toList()));
     }
 

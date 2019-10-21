@@ -1,6 +1,8 @@
 package cn.yjl.game.controller;
 
 import cn.yjl.game.dto.ResponseJsonDto;
+import cn.yjl.game.dto.event.BaseEventDto;
+import cn.yjl.game.dto.event.GameEventWrapDto;
 import cn.yjl.game.dto.request.BaseRequestDto;
 import cn.yjl.game.dto.request.DoPlayRequestDto;
 import cn.yjl.game.dto.request.LoginRequestDto;
@@ -32,7 +34,10 @@ public class GameController {
 
     @PostMapping("/joinGame")
     public ResponseJsonDto joinGame(@RequestBody BaseRequestDto requestDto) {
-        return new ResponseJsonDto().setData(this.gameService.joinGame(requestDto).getGameId());
+        GameEventWrapDto data = this.gameService.joinGame(requestDto);
+        return new ResponseJsonDto().setData(data.getGameId()).addClaim("eventData",
+                data.getEventData().stream().filter(eventData -> requestDto.getUserId().equals(eventData.getUserId()))
+                        .findFirst().orElse(new BaseEventDto()));
     }
 
     @PostMapping("/startGame")
@@ -66,7 +71,7 @@ public class GameController {
     }
 
     @PostMapping("/quitGame")
-    public ResponseJsonDto quitGame(@RequestBody DoPlayRequestDto requestDto) {
+    public ResponseJsonDto quitGame(@RequestBody BaseRequestDto requestDto) {
         return new ResponseJsonDto().setData(this.gameService.quitGame(requestDto).getGameId());
     }
 
